@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Login</h1>
+    <form id="login-form">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username"><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password"><br><br>
+        <button type="submit" onclick="loginUser()">Login</button>
+    </form>
+    <div id="login-response"></div>
+
+    <script>
+        function loginUser() {
+            event.preventDefault();
+            var username = $('#username').val();
+            var password = $('#password').val();
+            var csrftoken = getCookie('csrftoken');
+            $.ajax({
+                type: 'POST',
+                url: '{% url 'login' %}',
+                data: {
+                    'username': username,
+                    'password': password
+                },
+                headers: {
+                    'X-CSRFToken': csrftoken
+                },
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = '/home/';
+                    } else {
+                        $('#login-response').html('<p>' + response.error + '</p>');
+                    }
+                }
+            });
+        }
+
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>

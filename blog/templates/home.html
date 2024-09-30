@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blog</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Blog Posts</h1>
+    <ul id="post-list">
+        {% for post in posts %}
+            <li data-pk="{{ post.pk }}">
+                <h2>{{ post.title }}</h2>
+                <p>{{ post.content }}</p>
+                <p>Author: {{ post.author.username }}</p>
+                <p>Timestamp: {{ post.timestamp }}</p>
+                {% if request.user.is_admin %}
+                    <button class="edit-post" data-pk="{{ post.pk }}">Edit</button>
+                    <button class="delete-post" data-pk="{{ post.pk }}">Delete</button>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if request.user.is_admin %}
+        <button id="create-post">Create Post</button>
+        <div id="create-post-form"></div>
+    {% endif %}
+
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+    <script>
+        $(document).ready(function() {
+            {% if request.user.is_admin %}
+                $('#create-post').click(function() {
+                    $.ajax({
+                        type: 'GET',
+                        url: '{% url 'create_post' %}',
+                        success: function(response) {
+                            $('#create-post-form').html(response);
+                            $('#create-post-form form').submit(function(event) {
+                                event.preventDefault();
+                                var form_data = $(this).serialize();
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '{% url 'ajax_create_post' %}',
+                                    data: form_data,
+                                    success: function(response) {
+                                        if (response.success) {
+                                            window.location.href = '{% url 'home' %}';
+                                        } else {
+                                            alert('Error creating post');
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+
+                $('.edit-post').click(function() {
+                    var pk = $(this).data('pk');
+                    var url = `/edit_post/${pk}/`;
+                    $.ajax({
+                        type: 'GET',
+                        url: url,
+                        success: function(response) {
+                            $('#post-list').html(response);
+                            $('#post-list form').submit(function(event) {
+                                event.preventDefault();
+                                var form_data = $(this).serialize();
+                                $.ajax({
+                                    type: 'POST',
+                                    url: `/ajax_edit_post/${pk}/`,
+                                    data: form_data,
+                                    success: function(response) {
+                                        if (response.success) {
+                                            window.location.href = '{% url 'home' %}';
+                                        } else {
+                                            alert('Error editing post');
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    });
+                });
+
+                $('.delete-post').click(function() {
+                    var pk = $(this).data('pk');
+                    var url = `/ajax_delete_post/${pk}/`;
+                    var csrftoken = $('#csrf-token').val();
+                    $.ajax({
+                        type: 'DELETE',
+                        url: url,
+                        headers: {
+                            'X-CSRFToken': csrftoken
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $(`li[data-pk="${pk}"]`).remove();
+                            } else {
+                                alert('Error deleting post');
+                            }
+                        }
+                    });
+                });
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
